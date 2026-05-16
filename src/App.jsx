@@ -131,11 +131,16 @@ export default function App() {
   // [NUEVO] LÓGICA DE FIREBASE (AUTH GOOGLE)
   // ---------------------------------------------------------
   
-  const handleGoogleLogin = () => {
-    setFirebaseError(null);
-    const provider = new GoogleAuthProvider();
-    // En PWA/Mobile el redirect es obligatorio porque los popups se bloquean en pantalla completa
-    signInWithRedirect(auth, provider);
+  const handleGoogleLogin = async () => {
+    try {
+      setFirebaseError(null);
+      const provider = new GoogleAuthProvider();
+      // En PWA/Mobile el redirect es obligatorio porque los popups se bloquean en pantalla completa
+      await signInWithRedirect(auth, provider);
+    } catch (error) {
+      console.error("Error al iniciar Google Login:", error);
+      setFirebaseError(`Firebase bloqueó la conexión: ${error.code}. Asegúrate de haber agregado el enlace a "Dominios Autorizados" en Firebase.`);
+    }
   };
 
   const handleLogout = async () => {
