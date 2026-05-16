@@ -8,21 +8,19 @@ import {
 
 // --- IMPORTACIONES DE FIREBASE ---
 import { initializeApp } from 'firebase/app';
-// [NUEVO] Importamos las funciones de autenticación con Google
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+// [NUEVO] Importamos signInWithRedirect y getRedirectResult en lugar de signInWithPopup
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 // --- INICIALIZACIÓN DE FIREBASE (¡Manten tus credenciales reales aquí!) ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDDG8l2TCegyE_bsNOpsi8S6cDc2LQyKqs",
-  authDomain: "gestor-uc.firebaseapp.com",
-  projectId: "gestor-uc",
-  storageBucket: "gestor-uc.firebasestorage.app",
-  messagingSenderId: "30485388346",
-  appId: "1:30485388346:web:2bd5c8385b188e22ce2903",
-  measurementId: "G-Q9DT3P1FD3"
+  apiKey: "TU_API_KEY_AQUI",
+  authDomain: "TU_AUTH_DOMAIN_AQUI",
+  projectId: "TU_PROJECT_ID_AQUI",
+  storageBucket: "TU_STORAGE_BUCKET_AQUI",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID_AQUI",
+  appId: "TU_APP_ID_AQUI"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -133,21 +131,11 @@ export default function App() {
   // [NUEVO] LÓGICA DE FIREBASE (AUTH GOOGLE)
   // ---------------------------------------------------------
   
-  const handleGoogleLogin = async () => {
-    try {
-      setFirebaseError(null);
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      
-      // Verificamos si el correo es el autorizado
-      if (result.user.email !== ALLOWED_EMAIL) {
-        await signOut(auth); // Lo sacamos inmediatamente
-        setFirebaseError(`Acceso denegado. El correo ${result.user.email} no está autorizado.`);
-      }
-    } catch (error) {
-      console.error("Error de autenticación:", error);
-      setFirebaseError("Error al conectar con Google. Revisa tu consola de Firebase.");
-    }
+  const handleGoogleLogin = () => {
+    setFirebaseError(null);
+    const provider = new GoogleAuthProvider();
+    // En PWA/Mobile el redirect es obligatorio porque los popups se bloquean en pantalla completa
+    signInWithRedirect(auth, provider);
   };
 
   const handleLogout = async () => {
@@ -155,6 +143,12 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Capturamos cualquier error que ocurra al volver de la página de Google
+    getRedirectResult(auth).catch((error) => {
+      console.error("Error tras redirección:", error);
+      setFirebaseError("Error de red o conexión al volver de Google.");
+    });
+
     // Escuchador de cambios de sesión
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
