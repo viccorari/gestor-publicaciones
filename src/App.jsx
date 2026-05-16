@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   CheckCircle2, Circle, Plus, Settings, X, 
   BookOpen, Building, Trash2, ChevronRight,
   GraduationCap, FileText, LayoutDashboard,
-  ArrowUp, ArrowDown, Calendar, MessageSquare, AlertCircle, Loader2, Edit2, Globe
+  ArrowUp, ArrowDown, Calendar, MessageSquare, AlertCircle, Loader2, Edit2, Globe, LogOut
 } from 'lucide-react';
 
 // --- IMPORTACIONES DE FIREBASE ---
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+// [NUEVO] Importamos las funciones de autenticación con Google
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
-// --- INICIALIZACIÓN DE FIREBASE (¡REEMPLAZA ESTO CON TUS DATOS!) ---
+// --- INICIALIZACIÓN DE FIREBASE (¡Manten tus credenciales reales aquí!) ---
 const firebaseConfig = {
   apiKey: "AIzaSyDDG8l2TCegyE_bsNOpsi8S6cDc2LQyKqs",
   authDomain: "gestor-uc.firebaseapp.com",
@@ -26,10 +27,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Usamos el ID de tu proyecto de Firebase como identificador único
-const appId = firebaseConfig.projectId || "gestor-uc-default";
-
-// --- CONFIGURACIÓN INICIAL ESTRICTA BASADA EN RESOLUCIÓN 4878-2025-R/UC ---
+// --- CONFIGURACIÓN INICIAL ESTRICTA ---
 const initialMasterProcess = {
   universidad: [
     { id: 'u_1', text: 'Registro en CTI Vitae (filiación principal UC) y perfil activo en CRIS-UC (Art. 6.2)' },
@@ -55,10 +53,14 @@ const initialMasterProcess = {
   ]
 };
 
+// [NUEVO] CORREO DE ADMINISTRADOR AUTORIZADO
+const ALLOWED_EMAIL = 'victor.corn@gmail.com';
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [firebaseError, setFirebaseError] = useState(null);
   
   const [masterProcess, setMasterProcess] = useState(initialMasterProcess);
   const [projects, setProjects] = useState([]);
@@ -75,42 +77,126 @@ export default function App() {
   const [deleteStepModal, setDeleteStepModal] = useState({ isOpen: false, track: null, stepId: null });
   const [deleteProjectModal, setDeleteProjectModal] = useState({ isOpen: false, projectId: null });
 
-  // 1. Autenticación (Espacio público, pero Firebase requiere un ID anónimo)
+  // ---------------------------------------------------------
+  // MANEJO DEL BOTÓN ATRÁS DE ANDROID
+  // ---------------------------------------------------------
+  const resetToDashboard = useCallback(() => {
+    setCurrentView('dashboard');
+    setSelectedProject(null);
+    if (window.history.state?.view !== 'dashboard') {
+      window.history.pushState({ view: 'dashboard' }, '');
+    }
+  }, []);
+
   useEffect(() => {
-    signInAnonymously(auth).catch(error => console.error("Error Auth:", error));
-    
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const handlePopState = (event) => {
+      if (event.state && event.state.view !== 'dashboard') {
+        if (event.state.view === 'settings') {
+          setCurrentView('settings');
+          setSelectedProject(null);
+        } else if (event.state.view === 'project') {
+          setCurrentView('dashboard');
+          const project = projects.find(p => p.id === event.state.id);
+          setSelectedProject(project || null);
+        }
+      } else {
+        setCurrentView('dashboard');
+        setSelectedProject(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    if (!window.history.state) {
+      window.history.replaceState({ view: 'dashboard' }, '');
+    } else if (window.history.state.view !== 'dashboard' && currentView === 'dashboard' && !selectedProject) {
+        window.history.replaceState({ view: 'dashboard' }, '');
+    }
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [projects, currentView, selectedProject]);
+
+  const navigateToSettings = () => {
+    window.history.pushState({ view: 'settings' }, '');
+    setCurrentView('settings');
+    setSelectedProject(null);
+  };
+
+  const navigateToProject = (project) => {
+    window.history.pushState({ view: 'project', id: project.id }, '');
+    setSelectedProject(project);
+    setCurrentView('dashboard');
+  };
+
+  const navigateBack = () => {
+    window.history.back();
+  };
+
+  // ---------------------------------------------------------
+  // [NUEVO] LÓGICA DE FIREBASE (AUTH GOOGLE)
+  // ---------------------------------------------------------
+  
+  const handleGoogleLogin = async () => {
+    try {
+      setFirebaseError(null);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      // Verificamos si el correo es el autorizado
+      if (result.user.email !== ALLOWED_EMAIL) {
+        await signOut(auth); // Lo sacamos inmediatamente
+        setFirebaseError(`Acceso denegado. El correo ${result.user.email} no está autorizado.`);
+      }
+    } catch (error) {
+      console.error("Error de autenticación:", error);
+      setFirebaseError("Error al conectar con Google. Revisa tu consola de Firebase.");
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+  };
+
+  useEffect(() => {
+    // Escuchador de cambios de sesión
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        if (currentUser.email === ALLOWED_EMAIL) {
+          setUser(currentUser);
+          setFirebaseError(null);
+        } else {
+          await signOut(auth);
+          setUser(null);
+          setFirebaseError(`Acceso restringido solo para ${ALLOWED_EMAIL}`);
+        }
+      } else {
+        setUser(null);
+      }
       setIsLoadingAuth(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // 2. Suscripción a Datos PÚBLICOS/COMPARTIDOS
   useEffect(() => {
-    if (!user) return;
-
-    // Ruta global pública en Firestore
+    if (!user) return; // Solo carga datos si está el usuario correcto
     const projectsRef = collection(db, 'public', 'data', 'projects');
     const settingsRef = collection(db, 'public', 'data', 'settings');
-
     let loadedProjects = false;
     let loadedSettings = false;
-
     const checkLoading = () => { if (loadedProjects && loadedSettings) setIsLoadingData(false); };
 
     const unsubProjects = onSnapshot(projectsRef, (snapshot) => {
       const dbProjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       dbProjects.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       setProjects(dbProjects);
-      
       if (selectedProject) {
         const updatedSelected = dbProjects.find(p => p.id === selectedProject.id);
         if (updatedSelected) setSelectedProject(updatedSelected);
         else setSelectedProject(null);
       }
       loadedProjects = true; checkLoading();
-    }, (error) => console.error(error));
+    }, (error) => {
+      console.error("Error Firestore Proyectos:", error);
+      setFirebaseError(`Error de Base de Datos. ${error.message}`);
+      setIsLoadingData(false);
+    });
 
     const unsubSettings = onSnapshot(settingsRef, (snapshot) => {
       const masterDoc = snapshot.docs.find(d => d.id === 'master_process');
@@ -124,7 +210,10 @@ export default function App() {
         setMasterProcess(initialMasterProcess);
       }
       loadedSettings = true; checkLoading();
-    }, (error) => console.error(error));
+    }, (error) => {
+      console.error("Error Firestore Settings:", error);
+      loadedSettings = true; checkLoading();
+    });
 
     return () => { unsubProjects(); unsubSettings(); };
   }, [user, selectedProject?.id]);
@@ -165,11 +254,9 @@ export default function App() {
     if (!user) return;
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
-
     const newCompleted = { ...project.completedSteps };
     if (newCompleted[stepId]) delete newCompleted[stepId];
     else newCompleted[stepId] = { completedAt: new Date().toISOString(), note: '' };
-
     await setDoc(doc(db, 'public', 'data', 'projects', projectId), { ...project, completedSteps: newCompleted });
   };
 
@@ -201,7 +288,6 @@ export default function App() {
   };
 
   const confirmDeleteMasterStep = (track, stepId) => setDeleteStepModal({ isOpen: true, track, stepId });
-  
   const executeDeleteMasterStep = () => {
     saveMasterProcessSettings({ ...masterProcess, [deleteStepModal.track]: masterProcess[deleteStepModal.track].filter(s => s.id !== deleteStepModal.stepId) });
     setDeleteStepModal({ isOpen: false, track: null, stepId: null });
@@ -213,11 +299,59 @@ export default function App() {
     return Math.round((trackSteps.filter(step => project.completedSteps[step.id]).length / trackSteps.length) * 100);
   };
 
-  if (isLoadingAuth || isLoadingData) {
+  // --- VISTAS ---
+
+  if (isLoadingAuth) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
-        <p className="text-slate-500 font-medium animate-pulse">Conectando al espacio de trabajo compartido...</p>
+        <p className="text-slate-500 font-medium animate-pulse">Verificando seguridad...</p>
+      </div>
+    );
+  }
+
+  // [NUEVO] PANTALLA DE LOGIN SI NO HAY USUARIO
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <LayoutDashboard className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800 mb-2">PubliTracker UC</h1>
+          <p className="text-slate-500 mb-8">Inicia sesión con tu cuenta de administrador para acceder a tus proyectos.</p>
+
+          {firebaseError && (
+            <div className="mb-6 bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 flex items-start text-left">
+              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+              <p>{firebaseError}</p>
+            </div>
+          )}
+
+          <button
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center bg-white border border-slate-300 text-slate-700 px-4 py-3 rounded-lg hover:bg-slate-50 transition shadow-sm font-medium"
+          >
+            {/* Logo de Google SVG */}
+            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Acceder con Google
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Pantalla de carga de datos una vez logueado
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+        <p className="text-slate-500 font-medium animate-pulse">Cargando tus proyectos...</p>
       </div>
     );
   }
@@ -242,10 +376,10 @@ export default function App() {
             <BookOpen className="w-8 h-8 mr-3 text-indigo-600" />
             Trazabilidad de Publicaciones
           </h1>
-          <p className="text-slate-500 mt-1">Espacio de trabajo compartido. Los cambios se ven en todos los dispositivos.</p>
+          <p className="text-slate-500 mt-1">Gestión administrativa y editorial.</p>
         </div>
         <div className="flex w-full md:w-auto gap-3">
-          <button onClick={() => setCurrentView('settings')} className="flex-1 md:flex-none flex items-center justify-center bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm">
+          <button onClick={navigateToSettings} className="flex-1 md:flex-none flex items-center justify-center bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm">
             <Settings className="w-5 h-5 mr-2" /> Procesos
           </button>
           <button onClick={() => setIsNewProjectModalOpen(true)} className="flex-1 md:flex-none flex items-center justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-sm">
@@ -257,15 +391,21 @@ export default function App() {
       {projects.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-600">No hay proyectos en este espacio</h3>
+          <h3 className="text-lg font-medium text-slate-600">Aún no hay proyectos</h3>
           <button onClick={() => setIsNewProjectModalOpen(true)} className="mt-6 text-indigo-600 font-medium hover:text-indigo-800">+ Crear el primer proyecto</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
-            <div key={project.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col h-full" onClick={() => setSelectedProject(project)}>
+            <div key={project.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col h-full" onClick={() => navigateToProject(project)}>
               <div className="flex justify-between items-start mb-4 gap-2">
-                <h3 className="font-bold text-lg text-slate-800 leading-tight flex-grow pr-2">{project.title}</h3>
+                {/* [ACTUALIZADO] Añadido line-clamp-2 y el atributo title */}
+                <h3 
+                  className="font-bold text-lg text-slate-800 leading-tight flex-grow pr-2 line-clamp-2" 
+                  title={project.title}
+                >
+                  {project.title}
+                </h3>
                 <div className="flex gap-1 flex-shrink-0">
                   <button onClick={(e) => { e.stopPropagation(); setEditProjectModal({ isOpen: true, projectId: project.id, newTitle: project.title }); }} className="text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 p-2 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={(e) => { e.stopPropagation(); confirmDeleteProject(project.id); }} className="text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
@@ -322,7 +462,7 @@ export default function App() {
 
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-200">
-        <button onClick={() => setSelectedProject(null)} className="mb-6 flex items-center text-slate-500 hover:text-slate-800 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
+        <button onClick={navigateBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-800 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
         <div className="mb-8 bg-white p-5 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div className="flex-grow">
             <div className="flex items-start md:items-center gap-3 mb-2">
@@ -371,7 +511,7 @@ export default function App() {
 
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-200">
-        <button onClick={() => setCurrentView('dashboard')} className="mb-6 flex items-center text-slate-500 hover:text-slate-800 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
+        <button onClick={navigateBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-800 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
         <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-8">Estructura Global de Procesos</h1>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
           <ProcessEditor title="Trámite Universidad Continental" track="universidad" icon={Building} colorClass="text-blue-500" />
@@ -385,12 +525,19 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-indigo-100 pb-20">
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl text-slate-800 cursor-pointer" onClick={() => { setSelectedProject(null); setCurrentView('dashboard'); }}>
+          <div className="flex items-center gap-2 font-bold text-xl text-slate-800 cursor-pointer" onClick={() => (currentView !== 'dashboard' || selectedProject) ? navigateBack() : null}>
             <div className="bg-indigo-600 text-white p-1.5 rounded-lg"><LayoutDashboard className="w-5 h-5" /></div>
-            <span>PubliTracker <span className="text-indigo-600">UC - IEEE</span></span>
+            <span className="hidden sm:inline">PubliTracker <span className="text-indigo-600">UC</span></span>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100" title="Todos los usuarios ven esta misma información">
-            <Globe className="w-3.5 h-3.5" /> Espacio Global
+          
+          <div className="flex items-center">
+            <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+              <Globe className="w-3.5 h-3.5" /> Administrador
+            </div>
+            {/* [NUEVO] Botón de Cerrar Sesión */}
+            <button onClick={handleLogout} className="ml-3 p-2 text-slate-400 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar sesión">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </nav>
@@ -466,6 +613,7 @@ export default function App() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-200">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6 text-red-600" /></div>
             <h3 className="text-lg font-bold text-slate-800 text-center mb-2">¿Eliminar este paso de la plantilla?</h3>
+            <p className="text-sm text-slate-500 text-center mb-6">Al ser un espacio compartido, afectará a la plantilla de todos.</p>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setDeleteStepModal({ isOpen: false, track: null, stepId: null })} className="flex-1 px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition">Cancelar</button>
               <button onClick={executeDeleteMasterStep} className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition">Eliminar</button>
