@@ -6,28 +6,24 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate', // Se actualiza sola cuando haces cambios
+      registerType: 'autoUpdate',
       devOptions: {
-        enabled: true // Permite probar la PWA localmente
+        enabled: true
       },
       manifest: {
         name: 'Gestor de Publicaciones UC - IEEE',
         short_name: 'PubliTracker',
         description: 'Trazabilidad de publicaciones universitarias e IEEE',
-        theme_color: '#4f46e5', // El color índigo de tu barra superior
-        background_color: '#f8fafc', // El color de fondo gris claro
-        display: 'standalone', // ¡ESTO ES LO QUE LO HACE FULL SCREEN!
-        orientation: 'portrait', // Para que se vea vertical en móviles
+        theme_color: '#4f46e5',
+        background_color: '#f8fafc',
+        display: 'standalone',
+        orientation: 'portrait',
         icons: [
           {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            src: '/icon.svg',
+            sizes: '192x192 512x512 1024x1024',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
           }
         ]
       }
