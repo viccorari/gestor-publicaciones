@@ -14,13 +14,15 @@ import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'fi
 
 // --- INICIALIZACIÓN DE FIREBASE (¡Manten tus credenciales reales aquí!) ---
 const firebaseConfig = {
-  apiKey: "TU_API_KEY_AQUI",
-  authDomain: "TU_AUTH_DOMAIN_AQUI",
-  projectId: "TU_PROJECT_ID_AQUI",
-  storageBucket: "TU_STORAGE_BUCKET_AQUI",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID_AQUI",
-  appId: "TU_APP_ID_AQUI"
+  apiKey: "AIzaSyDDG8l2TCegyE_bsNOpsi8S6cDc2LQyKqs",
+  authDomain: "gestor-uc.firebaseapp.com",
+  projectId: "gestor-uc",
+  storageBucket: "gestor-uc.firebasestorage.app",
+  messagingSenderId: "30485388346",
+  appId: "1:30485388346:web:2bd5c8385b188e22ce2903",
+  measurementId: "G-Q9DT3P1FD3"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
