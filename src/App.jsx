@@ -59,6 +59,7 @@ export default function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [firebaseError, setFirebaseError] = useState(null);
+  const [isRedirecting, setIsRedirecting] = useState(false); // NUEVO ESTADO VISUAL
   
   const [masterProcess, setMasterProcess] = useState(initialMasterProcess);
   const [projects, setProjects] = useState([]);
@@ -131,16 +132,20 @@ export default function App() {
   // [NUEVO] LÓGICA DE FIREBASE (AUTH GOOGLE)
   // ---------------------------------------------------------
   
-  const handleGoogleLogin = async () => {
-    try {
-      setFirebaseError(null);
-      const provider = new GoogleAuthProvider();
-      // En PWA/Mobile el redirect es obligatorio porque los popups se bloquean en pantalla completa
-      await signInWithRedirect(auth, provider);
-    } catch (error) {
+  const handleGoogleLogin = () => {
+    setFirebaseError(null);
+    setIsRedirecting(true); // Cambiamos el botón a "Cargando..."
+    
+    const provider = new GoogleAuthProvider();
+    // Forzamos a que Google siempre pregunte qué cuenta usar
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
+    // IMPORTANTE: Quitamos el "await" y el "async". Llamamos a la redirección directa.
+    signInWithRedirect(auth, provider).catch((error) => {
       console.error("Error al iniciar Google Login:", error);
-      setFirebaseError(`Firebase bloqueó la conexión: ${error.code}. Asegúrate de haber agregado el enlace a "Dominios Autorizados" en Firebase.`);
-    }
+      setFirebaseError(`Error al redirigir: ${error.message}`);
+      setIsRedirecting(false);
+    });
   };
 
   const handleLogout = async () => {
@@ -329,16 +334,25 @@ export default function App() {
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center bg-white border border-slate-300 text-slate-700 px-4 py-3 rounded-lg hover:bg-slate-50 transition shadow-sm font-medium"
+            disabled={isRedirecting}
+            className="w-full flex items-center justify-center bg-white border border-slate-300 text-slate-700 px-4 py-3 rounded-lg hover:bg-slate-50 transition shadow-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {/* Logo de Google SVG */}
-            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Acceder con Google
+            {isRedirecting ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-3 animate-spin text-indigo-600" />
+                Conectando con Google...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Acceder con Google
+              </>
+            )}
           </button>
         </div>
       </div>
