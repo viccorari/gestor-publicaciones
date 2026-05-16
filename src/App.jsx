@@ -8,21 +8,18 @@ import {
 
 // --- IMPORTACIONES DE FIREBASE ---
 import { initializeApp } from 'firebase/app';
-// [NUEVO] Importamos signInWithRedirect y getRedirectResult en lugar de signInWithPopup
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 // --- INICIALIZACIÓN DE FIREBASE (¡Manten tus credenciales reales aquí!) ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDDG8l2TCegyE_bsNOpsi8S6cDc2LQyKqs",
-  authDomain: "gestor-uc.firebaseapp.com",
-  projectId: "gestor-uc",
-  storageBucket: "gestor-uc.firebasestorage.app",
-  messagingSenderId: "30485388346",
-  appId: "1:30485388346:web:2bd5c8385b188e22ce2903",
-  measurementId: "G-Q9DT3P1FD3"
+  apiKey: "TU_API_KEY_AQUI",
+  authDomain: "TU_AUTH_DOMAIN_AQUI",
+  projectId: "TU_PROJECT_ID_AQUI",
+  storageBucket: "TU_STORAGE_BUCKET_AQUI",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID_AQUI",
+  appId: "TU_APP_ID_AQUI"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -53,7 +50,7 @@ const initialMasterProcess = {
   ]
 };
 
-// [NUEVO] CORREO DE ADMINISTRADOR AUTORIZADO
+// [ADMINISTRADOR]
 const ALLOWED_EMAIL = 'victor.corn@gmail.com';
 
 export default function App() {
@@ -61,7 +58,7 @@ export default function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [firebaseError, setFirebaseError] = useState(null);
-  const [isRedirecting, setIsRedirecting] = useState(false); // NUEVO ESTADO VISUAL
+  const [isRedirecting, setIsRedirecting] = useState(false); 
   
   const [masterProcess, setMasterProcess] = useState(initialMasterProcess);
   const [projects, setProjects] = useState([]);
@@ -69,7 +66,6 @@ export default function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState(null);
   
-  // Modales
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
   
@@ -131,23 +127,32 @@ export default function App() {
   };
 
   // ---------------------------------------------------------
-  // [NUEVO] LÓGICA DE FIREBASE (AUTH GOOGLE)
+  // [ACTUALIZADO] LÓGICA DE FIREBASE HÍBRIDA PWA
   // ---------------------------------------------------------
   
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setFirebaseError(null);
-    setIsRedirecting(true); // Cambiamos el botón a "Cargando..."
+    setIsRedirecting(true); 
     
     const provider = new GoogleAuthProvider();
-    // Forzamos a que Google siempre pregunte qué cuenta usar
     provider.setCustomParameters({ prompt: 'select_account' });
     
-    // IMPORTANTE: Quitamos el "await" y el "async". Llamamos a la redirección directa.
-    signInWithRedirect(auth, provider).catch((error) => {
-      console.error("Error al iniciar Google Login:", error);
-      setFirebaseError(`Error al redirigir: ${error.message}`);
-      setIsRedirecting(false);
-    });
+    try {
+      // 1. Intentamos forzar el Popup (En Android abre una Chrome Custom Tab que no se rompe en PWA)
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.warn("Popup bloqueado o cancelado, intentando Redirección...", error);
+      // 2. Si el sistema bloquea el Popup, usamos la Redirección como Plan B
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        signInWithRedirect(auth, provider).catch(err => {
+          setFirebaseError(`Error al redirigir: ${err.message}`);
+          setIsRedirecting(false);
+        });
+      } else {
+        setFirebaseError(`Error de conexión: ${error.message}`);
+        setIsRedirecting(false);
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -155,33 +160,59 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Capturamos cualquier error que ocurra al volver de la página de Google
-    getRedirectResult(auth).catch((error) => {
-      console.error("Error tras redirección:", error);
-      setFirebaseError("Error de red o conexión al volver de Google.");
-    });
-
-    // Escuchador de cambios de sesión
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        if (currentUser.email === ALLOWED_EMAIL) {
-          setUser(currentUser);
-          setFirebaseError(null);
-        } else {
-          await signOut(auth);
-          setUser(null);
-          setFirebaseError(`Acceso restringido solo para ${ALLOWED_EMAIL}`);
+    // RESOLVER LA REDIRECCIÓN DE FORMA PROFUNDA
+    const resolveRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          const email = result.user.email?.toLowerCase().trim();
+          const target = ALLOWED_EMAIL.toLowerCase().trim();
+          
+          if (email !== target) {
+            await signOut(auth);
+            setFirebaseError(`Acceso denegado: El correo ${email} no está autorizado.`);
+          } else {
+            setUser(result.user);
+          }
         }
-      } else {
-        setUser(null);
+      } catch (error) {
+        console.error("Error resolviendo la redirección:", error);
+        if (error.code === 'auth/web-storage-unsupported') {
+          setFirebaseError("Tu celular bloquea cookies de terceros. Usa la app en Chrome normal o habilita las cookies en tu dispositivo.");
+        } else if (error.code !== 'auth/redirect-cancelled-by-user') {
+          setFirebaseError(`Fallo crítico al iniciar sesión: ${error.message}`);
+        }
+      } finally {
+        // Una vez revisado el redirect, escuchamos la sesión normal
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+          if (currentUser) {
+            const email = currentUser.email?.toLowerCase().trim();
+            const target = ALLOWED_EMAIL.toLowerCase().trim();
+            
+            if (email === target) {
+              setUser(currentUser);
+              setFirebaseError(null);
+            } else {
+              await signOut(auth);
+              setUser(null);
+              setFirebaseError(`Acceso restringido solo para: ${ALLOWED_EMAIL}`);
+            }
+          } else {
+            setUser(null);
+          }
+          setIsLoadingAuth(false);
+          setIsRedirecting(false);
+        });
+        
+        return () => unsubscribe();
       }
-      setIsLoadingAuth(false);
-    });
-    return () => unsubscribe();
+    };
+
+    resolveRedirect();
   }, []);
 
   useEffect(() => {
-    if (!user) return; // Solo carga datos si está el usuario correcto
+    if (!user) return; 
     const projectsRef = collection(db, 'public', 'data', 'projects');
     const settingsRef = collection(db, 'public', 'data', 'settings');
     let loadedProjects = false;
@@ -316,7 +347,7 @@ export default function App() {
     );
   }
 
-  // [NUEVO] PANTALLA DE LOGIN SI NO HAY USUARIO
+  // PANTALLA DE LOGIN
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
@@ -361,7 +392,6 @@ export default function App() {
     );
   }
 
-  // Pantalla de carga de datos una vez logueado
   if (isLoadingData) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
@@ -414,11 +444,7 @@ export default function App() {
           {projects.map(project => (
             <div key={project.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col h-full" onClick={() => navigateToProject(project)}>
               <div className="flex justify-between items-start mb-4 gap-2">
-                {/* [ACTUALIZADO] Añadido line-clamp-2 y el atributo title */}
-                <h3 
-                  className="font-bold text-lg text-slate-800 leading-tight flex-grow pr-2 line-clamp-2" 
-                  title={project.title}
-                >
+                <h3 className="font-bold text-lg text-slate-800 leading-tight flex-grow pr-2 line-clamp-2" title={project.title}>
                   {project.title}
                 </h3>
                 <div className="flex gap-1 flex-shrink-0">
@@ -549,7 +575,6 @@ export default function App() {
             <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
               <Globe className="w-3.5 h-3.5" /> Administrador
             </div>
-            {/* [NUEVO] Botón de Cerrar Sesión */}
             <button onClick={handleLogout} className="ml-3 p-2 text-slate-400 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar sesión">
               <LogOut className="w-4 h-4" />
             </button>
