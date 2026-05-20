@@ -3,7 +3,8 @@ import {
   CheckCircle2, Circle, Plus, Settings, X, 
   BookOpen, Building, Trash2, ChevronRight,
   GraduationCap, FileText, LayoutDashboard,
-  ArrowUp, ArrowDown, Calendar, MessageSquare, AlertCircle, Loader2, Edit2, Globe, LogOut
+  ArrowUp, ArrowDown, Calendar, MessageSquare, AlertCircle, Loader2, Edit2, Globe, LogOut,
+  Sun, Moon
 } from 'lucide-react';
 
 // --- IMPORTACIONES DE FIREBASE ---
@@ -57,6 +58,7 @@ const ALLOWED_EMAIL = 'victor.corn@gmail.com';
 export default function App() {
   const [user, setUser] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [firebaseError, setFirebaseError] = useState(null);
   const [isRedirecting, setIsRedirecting] = useState(false); 
@@ -74,6 +76,18 @@ export default function App() {
   const [noteModal, setNoteModal] = useState({ isOpen: false, projectId: null, stepId: null, text: '' });
   const [deleteStepModal, setDeleteStepModal] = useState({ isOpen: false, track: null, stepId: null });
   const [deleteProjectModal, setDeleteProjectModal] = useState({ isOpen: false, projectId: null });
+
+  useEffect(() => {
+    console.log("Aplicando tema:", theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // ---------------------------------------------------------
   // MANEJO DEL BOTÓN ATRÁS DE ANDROID
@@ -341,9 +355,19 @@ export default function App() {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
-        <p className="text-slate-500 font-medium animate-pulse">Verificando seguridad...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center transition-colors duration-200 relative">
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 transition-colors"
+            title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+        </div>
+        <Loader2 className="w-10 h-10 text-indigo-600 dark:text-indigo-400 animate-spin mb-4" />
+        <p className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Verificando seguridad...</p>
       </div>
     );
   }
@@ -351,16 +375,26 @@ export default function App() {
   // PANTALLA DE LOGIN
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200">
-          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <LayoutDashboard className="w-8 h-8 text-indigo-600" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-4 transition-colors duration-200 relative">
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 transition-colors"
+            title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200 dark:border-slate-700">
+          <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <LayoutDashboard className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">PubliTracker UC</h1>
-          <p className="text-slate-500 mb-8">Inicia sesión con tu cuenta de administrador para acceder a tus proyectos.</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">PubliTracker UC</h1>
+          <p className="text-slate-500 dark:text-slate-400 mb-8">Inicia sesión con tu cuenta de administrador para acceder a tus proyectos.</p>
 
           {firebaseError && (
-            <div className="mb-6 bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 flex items-start text-left">
+            <div className="mb-6 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm border border-red-100 dark:border-red-900/40 flex items-start text-left">
               <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
               <p>{firebaseError}</p>
             </div>
@@ -369,11 +403,11 @@ export default function App() {
           <button
             onClick={handleGoogleLogin}
             disabled={isRedirecting}
-            className="w-full flex items-center justify-center bg-white border border-slate-300 text-slate-700 px-4 py-3 rounded-lg hover:bg-slate-50 transition shadow-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 px-4 py-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-650 transition shadow-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isRedirecting ? (
               <>
-                <Loader2 className="w-5 h-5 mr-3 animate-spin text-indigo-600" />
+                <Loader2 className="w-5 h-5 mr-3 animate-spin text-indigo-600 dark:text-indigo-400" />
                 Conectando con Google...
               </>
             ) : (
@@ -395,9 +429,19 @@ export default function App() {
 
   if (isLoadingData) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
-        <p className="text-slate-500 font-medium animate-pulse">Cargando tus proyectos...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center transition-colors duration-200 relative">
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 transition-colors"
+            title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+        </div>
+        <Loader2 className="w-10 h-10 text-indigo-600 dark:text-indigo-400 animate-spin mb-4" />
+        <p className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Cargando tus proyectos...</p>
       </div>
     );
   }
@@ -405,57 +449,57 @@ export default function App() {
   const ProgressBar = ({ progress, colorClass, label, icon: Icon }) => (
     <div className="mb-3">
       <div className="flex justify-between items-center mb-1 text-sm">
-        <div className="flex items-center text-slate-600 font-medium"><Icon className="w-4 h-4 mr-1.5" /> {label}</div>
-        <span className="font-bold text-slate-800">{progress}%</span>
+        <div className="flex items-center text-slate-600 dark:text-slate-300 font-medium"><Icon className="w-4 h-4 mr-1.5" /> {label}</div>
+        <span className="font-bold text-slate-800 dark:text-slate-200">{progress}%</span>
       </div>
-      <div className="w-full bg-slate-200 rounded-full h-2.5">
+      <div className="w-full bg-slate-200 dark:bg-slate-750 rounded-full h-2.5">
         <div className={`h-2.5 rounded-full transition-all duration-500 ${colorClass}`} style={{ width: `${progress}%` }}></div>
       </div>
     </div>
   );
 
   const DashboardView = () => (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-200">
+    <div className="p-4 md:p-8 max-w-full w-full px-4 md:px-8 lg:px-12 animate-in fade-in zoom-in-95 duration-200">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
-            <BookOpen className="w-8 h-8 mr-3 text-indigo-600" />
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 flex items-center">
+            <BookOpen className="w-8 h-8 mr-3 text-indigo-600 dark:text-indigo-400" />
             Trazabilidad de Publicaciones
           </h1>
-          <p className="text-slate-500 mt-1">Gestión administrativa y editorial.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Gestión administrativa y editorial.</p>
         </div>
         <div className="flex w-full md:w-auto gap-3">
-          <button onClick={navigateToSettings} className="flex-1 md:flex-none flex items-center justify-center bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm">
+          <button onClick={navigateToSettings} className="flex-1 md:flex-none flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-650 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm">
             <Settings className="w-5 h-5 mr-2" /> Procesos
           </button>
-          <button onClick={() => setIsNewProjectModalOpen(true)} className="flex-1 md:flex-none flex items-center justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-sm">
+          <button onClick={() => setIsNewProjectModalOpen(true)} className="flex-1 md:flex-none flex items-center justify-center bg-indigo-600 dark:bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition shadow-sm">
             <Plus className="w-5 h-5 mr-2" /> Nuevo
           </button>
         </div>
       </div>
 
       {projects.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
-          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-600">Aún no hay proyectos</h3>
-          <button onClick={() => setIsNewProjectModalOpen(true)} className="mt-6 text-indigo-600 font-medium hover:text-indigo-800">+ Crear el primer proyecto</button>
+        <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+          <FileText className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-slate-600 dark:text-slate-350">Aún no hay proyectos</h3>
+          <button onClick={() => setIsNewProjectModalOpen(true)} className="mt-6 text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-800 dark:hover:text-indigo-300">+ Crear el primer proyecto</button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {projects.map(project => (
-            <div key={project.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col h-full" onClick={() => navigateToProject(project)}>
+            <div key={project.id} className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500 transition-all cursor-pointer flex flex-col h-full" onClick={() => navigateToProject(project)}>
               <div className="flex justify-between items-start mb-4 gap-2">
-                <h3 className="font-bold text-lg text-slate-800 leading-tight flex-grow pr-2 line-clamp-2" title={project.title}>
+                <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 leading-tight flex-grow pr-2 line-clamp-2" title={project.title}>
                   {project.title}
                 </h3>
                 <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={(e) => { e.stopPropagation(); setEditProjectModal({ isOpen: true, projectId: project.id, newTitle: project.title }); }} className="text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 p-2 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={(e) => { e.stopPropagation(); confirmDeleteProject(project.id); }} className="text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setEditProjectModal({ isOpen: true, projectId: project.id, newTitle: project.title }); }} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 p-2 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); confirmDeleteProject(project.id); }} className="text-slate-400 hover:text-red-650 dark:hover:text-red-400 bg-slate-100 dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-950/20 p-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
               <div className="flex-grow">
-                <ProgressBar progress={calculateProgress(project, 'universidad')} colorClass="bg-blue-500" label="Trámite UC" icon={Building} />
-                <ProgressBar progress={calculateProgress(project, 'publicacion')} colorClass="bg-emerald-500" label="Proceso IEEE" icon={GraduationCap} />
+                <ProgressBar progress={calculateProgress(project, 'universidad')} colorClass="bg-blue-500 dark:bg-blue-600" label="Trámite UC" icon={Building} />
+                <ProgressBar progress={calculateProgress(project, 'publicacion')} colorClass="bg-emerald-500 dark:bg-emerald-600" label="Proceso IEEE" icon={GraduationCap} />
               </div>
             </div>
           ))}
@@ -469,7 +513,7 @@ export default function App() {
     if(!project) return null;
 
     const ChecklistSection = ({ title, track, icon: Icon, colorClass, textColor, progress }) => (
-      <div className="bg-white p-5 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
+      <div className="bg-white dark:bg-slate-800 p-5 md:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col h-full transition-colors duration-200">
         <div className="flex items-center justify-between mb-5">
           <h2 className={`text-xl font-bold flex items-center ${textColor}`}><Icon className="w-6 h-6 mr-2" /> {title}</h2>
           <span className={`bg-opacity-10 px-3 py-1 rounded-full text-sm font-bold ${textColor} bg-current`}>{progress}%</span>
@@ -479,20 +523,20 @@ export default function App() {
             const stepData = project.completedSteps?.[step.id];
             const isCompleted = !!stepData;
             return (
-              <div key={step.id} className={`flex flex-col p-3 rounded-lg transition border ${isCompleted ? 'bg-slate-50 border-slate-200' : 'hover:bg-slate-50 border-transparent'}`}>
+              <div key={step.id} className={`flex flex-col p-3 rounded-lg transition border ${isCompleted ? 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/60' : 'hover:bg-slate-50 dark:hover:bg-slate-900/40 border-transparent'}`}>
                 <div className="flex items-start">
                   <div className="mt-0.5 flex-shrink-0 cursor-pointer p-1" onClick={() => toggleStep(project.id, step.id)}>
-                    {isCompleted ? <CheckCircle2 className={`w-5 h-5 ${textColor}`} /> : <Circle className="w-5 h-5 text-slate-300 hover:text-indigo-400 transition" />}
+                    {isCompleted ? <CheckCircle2 className={`w-5 h-5 ${textColor}`} /> : <Circle className="w-5 h-5 text-slate-300 dark:text-slate-600 hover:text-indigo-400 dark:hover:text-indigo-500 transition" />}
                   </div>
                   <div className="ml-2 flex-grow cursor-pointer" onClick={() => toggleStep(project.id, step.id)}>
-                    <p className={`text-sm md:text-base transition-all ${isCompleted ? 'text-slate-500 line-through' : 'text-slate-700'}`}><span className="font-semibold mr-2 text-slate-400">{index + 1}.</span> {step.text}</p>
+                    <p className={`text-sm md:text-base transition-all ${isCompleted ? 'text-slate-500 dark:text-slate-450 line-through' : 'text-slate-700 dark:text-slate-200'}`}><span className="font-semibold mr-2 text-slate-400 dark:text-slate-500">{index + 1}.</span> {step.text}</p>
                   </div>
                 </div>
                 {isCompleted && (
                   <div className="ml-9 mt-2 flex flex-col items-start gap-2 animate-in slide-in-from-top-2 duration-200">
-                    <div className="flex items-center text-xs text-slate-500 font-medium bg-white px-2 py-1 rounded border border-slate-200 shadow-sm"><Calendar className="w-3 h-3 mr-1" /> Completado el {formatDate(stepData.completedAt)}</div>
-                    {stepData.note && <div className="text-sm text-slate-600 bg-yellow-50/50 border border-yellow-200/50 px-3 py-2 rounded-md w-full relative"><MessageSquare className="w-4 h-4 text-yellow-600 absolute top-2 right-2 opacity-30" /><p className="pr-6">{stepData.note}</p></div>}
-                    <button onClick={() => setNoteModal({ isOpen: true, projectId: project.id, stepId: step.id, text: stepData.note || '' })} className="text-xs text-indigo-600 font-medium hover:text-indigo-800 flex items-center mt-1"><MessageSquare className="w-3 h-3 mr-1" /> {stepData.note ? 'Editar nota' : '+ Añadir nota'}</button>
+                    <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 font-medium bg-white dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 shadow-sm"><Calendar className="w-3 h-3 mr-1" /> Completado el {formatDate(stepData.completedAt)}</div>
+                    {stepData.note && <div className="text-sm text-slate-600 dark:text-slate-300 bg-yellow-50/55 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-900/30 px-3 py-2 rounded-md w-full relative"><MessageSquare className="w-4 h-4 text-yellow-600 dark:text-yellow-400 absolute top-2 right-2 opacity-30" /><p className="pr-6">{stepData.note}</p></div>}
+                    <button onClick={() => setNoteModal({ isOpen: true, projectId: project.id, stepId: step.id, text: stepData.note || '' })} className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center mt-1"><MessageSquare className="w-3 h-3 mr-1" /> {stepData.note ? 'Editar nota' : '+ Añadir nota'}</button>
                   </div>
                 )}
               </div>
@@ -503,21 +547,21 @@ export default function App() {
     );
 
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-200">
-        <button onClick={navigateBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-800 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
-        <div className="mb-8 bg-white p-5 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <div className="p-4 md:p-8 max-w-full w-full px-4 md:px-8 lg:px-12 animate-in fade-in zoom-in-95 duration-200">
+        <button onClick={navigateBack} className="mb-6 flex items-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
+        <div className="mb-8 bg-white dark:bg-slate-800 p-5 md:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div className="flex-grow">
             <div className="flex items-start md:items-center gap-3 mb-2">
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">{project.title}</h1>
-              <button onClick={() => setEditProjectModal({ isOpen: true, projectId: project.id, newTitle: project.title })} className="text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 p-2 rounded-lg transition-colors flex-shrink-0 mt-1 md:mt-0"><Edit2 className="w-5 h-5" /></button>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-tight">{project.title}</h1>
+              <button onClick={() => setEditProjectModal({ isOpen: true, projectId: project.id, newTitle: project.title })} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-50 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 p-2 rounded-lg transition-colors flex-shrink-0 mt-1 md:mt-0"><Edit2 className="w-5 h-5" /></button>
             </div>
-            <p className="text-slate-500 text-sm">Proyecto creado el {formatDate(project.createdAt)}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Proyecto creado el {formatDate(project.createdAt)}</p>
           </div>
-          <button onClick={() => confirmDeleteProject(project.id)} className="flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg font-medium transition-colors border border-red-100 md:w-auto w-full flex-shrink-0"><Trash2 className="w-4 h-4 mr-2" /> Eliminar Proyecto</button>
+          <button onClick={() => confirmDeleteProject(project.id)} className="flex items-center justify-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/40 px-4 py-2 rounded-lg font-medium transition-colors border border-red-100 dark:border-red-900/30 md:w-auto w-full flex-shrink-0"><Trash2 className="w-4 h-4 mr-2" /> Eliminar Proyecto</button>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
-          <ChecklistSection title="Incentivo Universidad Continental" track="universidad" icon={Building} textColor="text-blue-600" progress={calculateProgress(project, 'universidad')} />
-          <ChecklistSection title="Proceso Editorial IEEE" track="publicacion" icon={GraduationCap} textColor="text-emerald-600" progress={calculateProgress(project, 'publicacion')} />
+          <ChecklistSection title="Incentivo Universidad Continental" track="universidad" icon={Building} textColor="text-blue-600 dark:text-blue-400" progress={calculateProgress(project, 'universidad')} />
+          <ChecklistSection title="Proceso Editorial IEEE" track="publicacion" icon={GraduationCap} textColor="text-emerald-600 dark:text-emerald-400" progress={calculateProgress(project, 'publicacion')} />
         </div>
       </div>
     );
@@ -528,55 +572,65 @@ export default function App() {
     const handleAddStep = (track) => { addMasterStep(track, newStepText[track]); setNewStepText({ ...newStepText, [track]: '' }); };
 
     const ProcessEditor = ({ title, track, icon: Icon, colorClass }) => (
-      <div className="bg-white p-5 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
-        <h2 className="text-xl font-bold flex items-center text-slate-800 mb-2"><Icon className={`w-6 h-6 mr-2 ${colorClass}`} /> {title}</h2>
-        <p className="text-sm text-slate-500 mb-6">Esta plantilla aplica a todos los proyectos y se actualizará para todos los que usen la app.</p>
+      <div className="bg-white dark:bg-slate-800 p-5 md:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col h-full transition-colors duration-200">
+        <h2 className="text-xl font-bold flex items-center text-slate-800 dark:text-slate-100 mb-2"><Icon className={`w-6 h-6 mr-2 ${colorClass}`} /> {title}</h2>
+        <p className="text-sm text-slate-550 dark:text-slate-400 mb-6">Esta plantilla aplica a todos los proyectos y se actualizará para todos los que usen la app.</p>
         <div className="space-y-2 mb-6 flex-grow">
           {masterProcess[track].map((step, index) => (
-            <div key={step.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 transition-all">
-              <span className="text-sm md:text-base text-slate-700 pr-2"><span className="font-bold mr-2 text-slate-400">{index + 1}.</span>{step.text}</span>
+            <div key={step.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 transition-all">
+              <span className="text-sm md:text-base text-slate-700 dark:text-slate-200 pr-2"><span className="font-bold mr-2 text-slate-400 dark:text-slate-550">{index + 1}.</span>{step.text}</span>
               <div className="flex items-center gap-1">
-                <button onClick={() => moveMasterStep(track, index, 'up')} disabled={index === 0} className="text-slate-400 hover:text-indigo-600 disabled:opacity-20 p-1"><ArrowUp className="w-4 h-4" /></button>
-                <button onClick={() => moveMasterStep(track, index, 'down')} disabled={index === masterProcess[track].length - 1} className="text-slate-400 hover:text-indigo-600 disabled:opacity-20 p-1"><ArrowDown className="w-4 h-4" /></button>
-                <div className="w-px h-5 bg-slate-300 mx-1"></div>
+                <button onClick={() => moveMasterStep(track, index, 'up')} disabled={index === 0} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-20 p-1"><ArrowUp className="w-4 h-4" /></button>
+                <button onClick={() => moveMasterStep(track, index, 'down')} disabled={index === masterProcess[track].length - 1} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-20 p-1"><ArrowDown className="w-4 h-4" /></button>
+                <div className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-1"></div>
                 <button onClick={() => confirmDeleteMasterStep(track, step.id)} className="text-slate-400 hover:text-red-500 p-1"><X className="w-5 h-5" /></button>
               </div>
             </div>
           ))}
         </div>
         <div className="flex gap-2 mt-auto">
-          <input type="text" placeholder="Añadir nuevo paso..." className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" value={newStepText[track]} onChange={(e) => setNewStepText({...newStepText, [track]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && handleAddStep(track)} />
-          <button onClick={() => handleAddStep(track)} disabled={!newStepText[track].trim()} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-medium hover:bg-indigo-100 transition disabled:opacity-50">Añadir</button>
+          <input type="text" placeholder="Añadir nuevo paso..." className="flex-1 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" value={newStepText[track]} onChange={(e) => setNewStepText({...newStepText, [track]: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && handleAddStep(track)} />
+          <button onClick={() => handleAddStep(track)} disabled={!newStepText[track].trim()} className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-lg font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition disabled:opacity-50">Añadir</button>
         </div>
       </div>
     );
 
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-200">
-        <button onClick={navigateBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-800 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-8">Estructura Global de Procesos</h1>
+      <div className="p-4 md:p-8 max-w-full w-full px-4 md:px-8 lg:px-12 animate-in fade-in zoom-in-95 duration-200">
+        <button onClick={navigateBack} className="mb-6 flex items-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition font-medium"><ChevronRight className="w-5 h-5 mr-1 rotate-180" /> Volver al Tablero</button>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-8">Estructura Global de Procesos</h1>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
-          <ProcessEditor title="Trámite Universidad Continental" track="universidad" icon={Building} colorClass="text-blue-500" />
-          <ProcessEditor title="Proceso de Publicación IEEE" track="publicacion" icon={GraduationCap} colorClass="text-emerald-500" />
+          <ProcessEditor title="Trámite Universidad Continental" track="universidad" icon={Building} colorClass="text-blue-500 dark:text-blue-400" />
+          <ProcessEditor title="Proceso de Publicación IEEE" track="publicacion" icon={GraduationCap} colorClass="text-emerald-500 dark:text-emerald-400" />
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-indigo-100 pb-20">
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl text-slate-800 cursor-pointer" onClick={() => (currentView !== 'dashboard' || selectedProject) ? navigateBack() : null}>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 selection:bg-indigo-100 dark:selection:bg-indigo-900 transition-colors duration-200 pb-20">
+      <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 shadow-sm transition-colors duration-200">
+        <div className="w-full px-4 md:px-8 lg:px-12 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-xl text-slate-800 dark:text-slate-100 cursor-pointer" onClick={() => (currentView !== 'dashboard' || selectedProject) ? navigateBack() : null}>
             <div className="bg-indigo-600 text-white p-1.5 rounded-lg"><LayoutDashboard className="w-5 h-5" /></div>
-            <span className="hidden sm:inline">PubliTracker <span className="text-indigo-600">UC</span></span>
+            <span className="hidden sm:inline">PubliTracker <span className="text-indigo-600 dark:text-indigo-400">UC</span></span>
           </div>
           
-          <div className="flex items-center">
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-650 rounded-lg transition-colors mr-1"
+              title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </button>
+
+            <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-900/40">
               <Globe className="w-3.5 h-3.5" /> Administrador
             </div>
-            <button onClick={handleLogout} className="ml-3 p-2 text-slate-400 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar sesión">
+            
+            <button onClick={handleLogout} className="ml-2 p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 bg-slate-100 dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors" title="Cerrar sesión">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -587,17 +641,17 @@ export default function App() {
 
       {/* MODALES */}
       {isNewProjectModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-slate-800 mb-5">Nuevo Proyecto IEEE</h3>
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-slate-700">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-5">Nuevo Proyecto IEEE</h3>
             <form onSubmit={handleCreateProject}>
               <div className="mb-5">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Título de la Publicación</label>
-                <textarea className="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-24" placeholder="Ej: Analysis of machine learning algorithms..." value={newProjectTitle} onChange={(e) => setNewProjectTitle(e.target.value)} autoFocus />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Título de la Publicación</label>
+                <textarea className="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-24" placeholder="Ej: Analysis of machine learning algorithms..." value={newProjectTitle} onChange={(e) => setNewProjectTitle(e.target.value)} autoFocus />
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setIsNewProjectModalOpen(false)} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-                <button type="submit" disabled={!newProjectTitle.trim()} className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition disabled:opacity-50">Crear Proyecto</button>
+                <button type="button" onClick={() => setIsNewProjectModalOpen(false)} className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">Cancelar</button>
+                <button type="submit" disabled={!newProjectTitle.trim()} className="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition disabled:opacity-50">Crear Proyecto</button>
               </div>
             </form>
           </div>
@@ -605,17 +659,17 @@ export default function App() {
       )}
 
       {editProjectModal.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-slate-800 mb-5 flex items-center"><Edit2 className="w-5 h-5 mr-2 text-indigo-600"/> Renombrar Proyecto</h3>
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-slate-700">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-5 flex items-center"><Edit2 className="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400"/> Renombrar Proyecto</h3>
             <form onSubmit={saveProjectTitle}>
               <div className="mb-5">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Nuevo Título</label>
-                <textarea className="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-24" value={editProjectModal.newTitle} onChange={(e) => setEditProjectModal({...editProjectModal, newTitle: e.target.value})} autoFocus />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Nuevo Título</label>
+                <textarea className="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-24" value={editProjectModal.newTitle} onChange={(e) => setEditProjectModal({...editProjectModal, newTitle: e.target.value})} autoFocus />
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setEditProjectModal({ isOpen: false, projectId: null, newTitle: '' })} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-                <button type="submit" disabled={!editProjectModal.newTitle.trim()} className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition disabled:opacity-50">Guardar</button>
+                <button type="button" onClick={() => setEditProjectModal({ isOpen: false, projectId: null, newTitle: '' })} className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">Cancelar</button>
+                <button type="submit" disabled={!editProjectModal.newTitle.trim()} className="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition disabled:opacity-50">Guardar</button>
               </div>
             </form>
           </div>
@@ -623,41 +677,41 @@ export default function App() {
       )}
 
       {deleteProjectModal.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6 text-red-600" /></div>
-            <h3 className="text-lg font-bold text-slate-800 text-center mb-2">¿Eliminar proyecto?</h3>
-            <p className="text-sm text-slate-500 text-center mb-6">Se borrará para todos de forma irreversible.</p>
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-200 border border-slate-100 dark:border-slate-700">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" /></div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-2">¿Eliminar proyecto?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Se borrará para todos de forma irreversible.</p>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setDeleteProjectModal({ isOpen: false, projectId: null })} className="flex-1 px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-              <button onClick={executeDeleteProject} className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition">Eliminar</button>
+              <button onClick={() => setDeleteProjectModal({ isOpen: false, projectId: null })} className="flex-1 px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">Cancelar</button>
+              <button onClick={executeDeleteProject} className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white font-medium rounded-lg hover:bg-red-750 dark:hover:bg-red-650 transition">Eliminar</button>
             </div>
           </div>
         </div>
       )}
       
       {noteModal.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-2 mb-4"><MessageSquare className="w-5 h-5 text-indigo-600" /><h3 className="text-xl font-bold text-slate-800">Añadir Nota al Paso</h3></div>
-            <textarea className="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-32 mb-5" placeholder="Ej: Link del Paper en ScholarOne..." value={noteModal.text} onChange={(e) => setNoteModal({...noteModal, text: e.target.value})} autoFocus />
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-2 mb-4"><MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /><h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Añadir Nota al Paso</h3></div>
+            <textarea className="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-32 mb-5" placeholder="Ej: Link del Paper en ScholarOne..." value={noteModal.text} onChange={(e) => setNoteModal({...noteModal, text: e.target.value})} autoFocus />
             <div className="flex justify-end gap-3">
-              <button onClick={() => setNoteModal({...noteModal, isOpen: false})} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-              <button onClick={saveNote} className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">Guardar</button>
+              <button onClick={() => setNoteModal({...noteModal, isOpen: false})} className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">Cancelar</button>
+              <button onClick={saveNote} className="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition">Guardar</button>
             </div>
           </div>
         </div>
       )}
 
       {deleteStepModal.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6 text-red-600" /></div>
-            <h3 className="text-lg font-bold text-slate-800 text-center mb-2">¿Eliminar este paso de la plantilla?</h3>
-            <p className="text-sm text-slate-500 text-center mb-6">Al ser un espacio compartido, afectará a la plantilla de todos.</p>
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-200 border border-slate-100 dark:border-slate-700">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" /></div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-2">¿Eliminar este paso de la plantilla?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Al ser un espacio compartido, afectará a la plantilla de todos.</p>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setDeleteStepModal({ isOpen: false, track: null, stepId: null })} className="flex-1 px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-              <button onClick={executeDeleteMasterStep} className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition">Eliminar</button>
+              <button onClick={() => setDeleteStepModal({ isOpen: false, track: null, stepId: null })} className="flex-1 px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">Cancelar</button>
+              <button onClick={executeDeleteMasterStep} className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white font-medium rounded-lg hover:bg-red-750 dark:hover:bg-red-650 transition">Eliminar</button>
             </div>
           </div>
         </div>
