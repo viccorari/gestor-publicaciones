@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Función helper para verificar si el usuario es el administrador autorizado
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'victor.corn@gmail.com';
+    }
+
+    match /public/data/projects/{projectId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /public/data/settings/{settingId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

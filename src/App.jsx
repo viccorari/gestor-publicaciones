@@ -12,16 +12,25 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
-// --- INICIALIZACIÓN DE FIREBASE (¡Manten tus credenciales reales aquí!) ---
+// --- CONFIGURACIÓN DE FIREBASE SEGURA MEDIANTE VARIABLES DE ENTORNO ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDDG8l2TCegyE_bsNOpsi8S6cDc2LQyKqs",
-  authDomain: "gestor-uc.firebaseapp.com",
-  projectId: "gestor-uc",
-  storageBucket: "gestor-uc.firebasestorage.app",
-  messagingSenderId: "30485388346",
-  appId: "1:30485388346:web:2bd5c8385b188e22ce2903",
-  measurementId: "G-Q9DT3P1FD3"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
+// Verificación de configuración en desarrollo
+if (!firebaseConfig.apiKey) {
+  console.error(
+    "Falta la configuración de Firebase en las variables de entorno. " +
+    "Por favor, crea un archivo .env local con las credenciales correspondientes."
+  );
+}
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -52,8 +61,8 @@ const initialMasterProcess = {
   ]
 };
 
-// [ADMINISTRADOR]
-const ALLOWED_EMAIL = 'victor.corn@gmail.com';
+// [ADMINISTRADOR DESDE VARIABLES DE ENTORNO]
+const ALLOWED_EMAIL = import.meta.env.VITE_ALLOWED_EMAIL;
 
 export default function App() {
   const [user, setUser] = useState(null);
