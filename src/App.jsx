@@ -23,17 +23,22 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Verificación de configuración en desarrollo
-if (!firebaseConfig.apiKey) {
-  console.error(
-    "Falta la configuración de Firebase en las variables de entorno. " +
-    "Por favor, crea un archivo .env local con las credenciales correspondientes."
-  );
-}
+let app;
+let auth;
+let db;
+let initError = null;
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+try {
+  if (!firebaseConfig.apiKey) {
+    throw new Error("El archivo .env no contiene VITE_FIREBASE_API_KEY o el servidor de desarrollo necesita ser reiniciado.");
+  }
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} catch (error) {
+  console.error("Error al inicializar Firebase:", error);
+  initError = error.message;
+}
 
 // --- CONFIGURACIÓN INICIAL ESTRICTA ---
 const initialMasterProcess = {
@@ -65,6 +70,28 @@ const initialMasterProcess = {
 const ALLOWED_EMAIL = import.meta.env.VITE_ALLOWED_EMAIL;
 
 export default function App() {
+  if (initError) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-6 transition-colors duration-200">
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-red-200 dark:border-red-900/30 animate-in fade-in duration-300">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-950/30 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+            <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Error de Configuración</h1>
+          <p className="text-slate-650 dark:text-slate-350 mb-6 text-sm leading-relaxed">
+            La aplicación no se pudo iniciar porque faltan las credenciales de Firebase en el entorno de ejecución.
+          </p>
+          <div className="bg-red-50 dark:bg-red-950/20 text-red-800 dark:text-red-300 p-4 rounded-xl text-left font-mono text-xs mb-6 overflow-x-auto whitespace-pre-wrap border border-red-100 dark:border-red-900/30">
+            {initError}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed">
+            Asegúrate de haber creado el archivo <code className="bg-slate-100 dark:bg-slate-750 px-1 py-0.5 rounded font-semibold text-indigo-650 dark:text-indigo-400">.env</code> en la raíz del proyecto y de reiniciar el servidor Vite para cargar los cambios.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [user, setUser] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
