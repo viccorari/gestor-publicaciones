@@ -12,15 +12,15 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
-// --- CONFIGURACIÓN DE FIREBASE SEGURA MEDIANTE VARIABLES DE ENTORNO ---
+// --- CONFIGURACIÓN DE FIREBASE SEGURA CON VALORES DE RESPALDO ---
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDDG8l2TCegyE_bsNOpsi8S6cDc2LQyKqs",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "gestor-uc.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "gestor-uc",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "gestor-uc.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "30485388346",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:30485388346:web:2bd5c8385b188e22ce2903",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-Q9DT3P1FD3"
 };
 
 let app;
@@ -29,9 +29,6 @@ let db;
 let initError = null;
 
 try {
-  if (!firebaseConfig.apiKey) {
-    throw new Error("El archivo .env no contiene VITE_FIREBASE_API_KEY o el servidor de desarrollo necesita ser reiniciado.");
-  }
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
@@ -66,8 +63,8 @@ const initialMasterProcess = {
   ]
 };
 
-// [ADMINISTRADOR DESDE VARIABLES DE ENTORNO]
-const ALLOWED_EMAIL = import.meta.env.VITE_ALLOWED_EMAIL;
+// [ADMINISTRADOR DESDE VARIABLES DE ENTORNO CON VALOR DE RESPALDO]
+const ALLOWED_EMAIL = import.meta.env.VITE_ALLOWED_EMAIL || 'victor.corn@gmail.com';
 
 export default function App() {
   if (initError) {
